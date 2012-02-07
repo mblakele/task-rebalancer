@@ -72,8 +72,10 @@ declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
       (xs:QName('URI'), $uri,
         xs:QName('ASSIGNMENT'), subsequence($FORESTS, $assignment, 1))) }
   catch ($ex) {
-    if ($ex/error:code eq 'XDMP-MAXTASKS') then xdmp:set($IS-MAXTASKS, true())
-    else xdmp:rethrow() }
+    if ($ex/error:code ne 'XDMP-MAXTASKS') then xdmp:rethrow()
+    else (
+      xdmp:log(text { 'task server queue limit reached' }, 'info'),
+      xdmp:set($IS-MAXTASKS, true())) }
 };
 
 xdmp:log(
