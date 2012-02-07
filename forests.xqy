@@ -22,6 +22,8 @@ xquery version "1.0-ml";
 
 declare namespace fs="http://marklogic.com/xdmp/status/forest";
 
+declare variable $LIMIT as xs:integer external ;
+
 (: make sure uri lexicon is enabled :)
 cts:uris((), 'limit=0'),
 (: Look at local forests only.
@@ -34,6 +36,6 @@ return xdmp:spawn(
   'forest-uris.xqy',
   (xs:QName('FOREST'), $fid,
     xs:QName('INDEX'), $x,
-    xs:QName('LIMIT'), 0))
+    xs:QName('LIMIT'), $LIMIT))
 
 (: forests.xqy :)

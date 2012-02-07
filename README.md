@@ -37,7 +37,8 @@ Usage
 ---
 
     xdmp:invoke(
-      'forests.xqy', (),
+      'forests.xqy',
+      (xs:QName('LIMIT'), 0),
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database('DATABASE-NAME') }</database>
         <root>/PATH/TO/XQY/FILES/</root>

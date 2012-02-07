@@ -33,6 +33,8 @@ declare variable $INDEX as xs:integer external ;
 
 declare variable $LIMIT as xs:integer external ;
 
+declare variable $IS-MAXTASKS := false() ;
+
 declare variable $FORESTS := xdmp:database-forests(xdmp:database()) ;
 
 declare variable $COUNT := count($FORESTS) ;
@@ -54,19 +56,24 @@ declare variable $SPAWN-COUNT := count(
 declare function local:maybe-spawn($uri as xs:string)
 as xs:boolean?
 {
-  local:maybe-spawn($uri, xdmp:document-assign($uri, $COUNT))
+  if ($IS-MAXTASKS) then ()
+  else local:maybe-spawn($uri, xdmp:document-assign($uri, $COUNT))
 };
 
 declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
   as xs:boolean?
 {
   (: is the document already where it ought to be? :)
-  if ($assignment eq $INDEX) then () else (
+  if ($assignment eq $INDEX) then ()
+  else try {
     true(),
     xdmp:spawn(
       'rebalance.xqy',
       (xs:QName('URI'), $uri,
-        xs:QName('ASSIGNMENT'), subsequence($FORESTS, $assignment, 1))))
+        xs:QName('ASSIGNMENT'), subsequence($FORESTS, $assignment, 1))) }
+  catch ($ex) {
+    if ($ex/error:code eq 'XDMP-MAXTASKS') then xdmp:set($IS-MAXTASKS, true())
+    else xdmp:rethrow() }
 };
 
 xdmp:log(
