@@ -25,9 +25,12 @@ Setup
 This project contains three XQuery modules,
 intended for use with the built-in Task Server.
 
+* `scheduled-rebalancer.xqy`: entry point for use as a scheduled task.
 * `forests.xqy`: entry point for `xdmp:invoke`, HTTP request, or scheduled task.
 * `forest-uris.xqy`: spawned by `forests.xqy` to rebalance one forest.
 * `rebalance.xqy`: spawned by `forest-uris.xqy` to move one document.
+* `disable.xqy`: spawn this task to keep rebalancer tasks from running.
+* `enable.xqy`: spawn this task to re-enable rebalancer tasks.
 
 The database that you wish to rebalance must have the URI lexicon enabled.
 If that lexicon is not enabled, you must enable it and reindex.
@@ -36,26 +39,55 @@ In that case you may be better off reloading all your content (see above).
 Usage
 ---
 
+To start the rebalancer manually, use this XQuery expression:
+
     xdmp:invoke(
       'forests.xqy',
-      (xs:QName('LIMIT'), 0),
+      (xs:QName('LIMIT'), 0,
+       xs:QName('RESPAWN'), true()),
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database('DATABASE-NAME') }</database>
         <root>/PATH/TO/XQY/FILES/</root>
       </options>)
 
-Note that `forest-uris.xqy` and `rebalance.xqy` will run on the Task Server.
-By default, the Task Server thread pool size is 4.
-If your host has more than 4 CPU cores,
-you may wish to increase the thread pool size to match.
-However, you can also use the Task Server thread pool size
-to throttle the impact of the rebalance tasks
-on other users of the system.
+Be careful not to invoke `forests.xqy` multiple times,
+especially with `RESPAWN` set.
 
-Note that `forests.xqy` will only spawn `forest-uris.xqy`
+To run the rebalancer as a scheduled task, use `scheduled-rebalancer.xqy`.
+
+* Take care to set the scheduled task database correctly.
+* Set the module location, and module root so that the scheduled task runs
+in the `task-rebalancer` directory.
+* Do not run this task at short intervals, since the `forest-uris` tasks
+can conflict with one another. The period should be at least one hour.
+
+Note that `forest-uris.xqy` and `rebalance.xqy` will run on the Task Server.
+The `forests.xqy` task will only spawn `forest-uris.xqy`
 for forests local to the host. This is done so that
 you can invoke `forests.xqy` on each host in your cluster.
 This improves concurrency in clustered environments.
+
+The `LIMIT` option caps the number of URIs that will be checked for rebalancing.
+This should usually be 0, except when debugging.
+The Task Server queue size limit will have a similar effect,
+since large numbers of URIs will quickly fill up the Task Server queue.
+
+The `RESPAWN` option controls whether or not the `forest-uris` tasks
+will respawn automatically after filling up the Task Server queue.
+Set this `true()` when running the rebalancer manually.
+The `scheduled-rebalancer.xqy` task sets this option to `false()`,
+to avoid conflicting `forest-uris` tasks.
+
+By default, the Task Server thread pool size is 4.
+If your host has more than 4 CPU cores,
+you may wish to increase the thread pool size to match.
+You must have more than one thread per local forest,
+or the task-rebalancer will refuse to run.
+So for 8 forests you must configure at least 9 threads.
+This requirement helps avoid deadlocks.
+
+Beyond that minimum, you can use the Task Server thread pool size
+to throttle the impact of the rebalance tasks on other users of the system.
 
 Troubleshooting
 ---
@@ -79,7 +111,8 @@ For predicatable results, try to ensure that the forests as listed
 in the admin UI Database > Forests are in some determinate order:
 for example, keep the forests alphabetized.
 
-If this tool runs out of control, use the following expression to halt it:
+If this tool runs out of control, or if multiple copies run at the same time,
+use the following expression to halt it:
 
     xdmp:spawn(
       'disable.xqy',
