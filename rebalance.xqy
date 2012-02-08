@@ -25,7 +25,9 @@ declare variable $ASSIGNMENT as xs:unsignedLong external ;
 declare variable $URI as xs:string external ;
 
 (: update the existing document, by overwriting it :)
-xdmp:document-insert(
+if ($ASSIGNMENT = xdmp:document-forest($URI)) then xdmp:log(
+  text { $URI, 'is already in', $ASSIGNMENT }, 'info')
+else xdmp:document-insert(
   $URI,
   doc($URI),
   xdmp:document-get-permissions($URI),
