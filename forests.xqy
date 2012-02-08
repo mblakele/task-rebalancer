@@ -68,7 +68,10 @@ return xdmp:spawn(
   'forest-uris.xqy',
   (xs:QName('FOREST'), $fid,
     xs:QName('INDEX'), xs:integer($key),
-    xs:QName('RESPAWN'), $RESPAWN,
-    xs:QName('LIMIT'), $LIMIT))
+    xs:QName('LIMIT'), $LIMIT,
+    xs:QName('RESPAWN'), $RESPAWN),
+    <options xmlns="xdmp:eval">
+      <time-limit>3600</time-limit>
+    </options>)
 
 (: forests.xqy :)
