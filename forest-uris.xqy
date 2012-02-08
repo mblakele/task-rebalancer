@@ -113,7 +113,7 @@ declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
 
 xdmp:log(
   text {
-    'forest-uris.xqy: forest', $FOREST-NAME, 'limit', $LIMIT })
+    'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT })
 ,
 (: We need a bail-out mechanism to stop the respawns.
  : This document acts as a kill signal.
@@ -121,9 +121,15 @@ xdmp:log(
 if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
 else error((), 'TRB-FATAL is set')
 ,
+(: try to make the race for queue space a little fairer :)
+let $millis := xdmp:random(5000)
+return xdmp:log(
+  text { 'forest-uris.xqy:', $FOREST-NAME, 'sleeping', $millis, 'ms' })
+,
+(: looking at the value of SPAWN-COUNT will spawn the tasks :)
 xdmp:log(
   text {
-    'forest-uris.xqy: forest', $FOREST-NAME, 'limit', $LIMIT,
+    'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT,
     'spawned', $SPAWN-COUNT })
 
 (: forest-uris.xqy :)
