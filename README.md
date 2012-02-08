@@ -87,6 +87,7 @@ If this tool runs out of control, use the following expression to halt it:
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database() }</database>
         <root>/PATH/TO/XQY/FILES/</root>
+        <priority>higher</priority>
       </options>)
 
 Watch the Task Server status page. Once all the tasks have finished,
@@ -98,6 +99,7 @@ use this expression to renable the rebalancer.
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database() }</database>
         <root>/PATH/TO/XQY/FILES/</root>
+        <priority>higher</priority>
       </options>)
 
 You can also try to stop it by moving the `task-rebalancer` directory aside.
