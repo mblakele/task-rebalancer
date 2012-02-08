@@ -79,6 +79,31 @@ For predicatable results, try to ensure that the forests as listed
 in the admin UI Database > Forests are in some determinate order:
 for example, keep the forests alphabetized.
 
+If this tool runs out of control, use the following expression to halt it:
+
+    xdmp:spawn(
+      'disable.xqy',
+      (),
+      <options xmlns="xdmp:eval">
+        <database>{ xdmp:database() }</database>
+        <root>/PATH/TO/XQY/FILES/</root>
+      </options>)
+
+Watch the Task Server status page. Once all the tasks have finished,
+use this expression to renable the rebalancer.
+
+    xdmp:spawn(
+      enable.xqy',
+      (),
+      <options xmlns="xdmp:eval">
+        <database>{ xdmp:database() }</database>
+        <root>/PATH/TO/XQY/FILES/</root>
+      </options>)
+
+You can also try to stop it by moving the `task-rebalancer` directory aside.
+Either of these techniques may take some time: if you are in a hurry,
+it may be faster to restart MarkLogic on the affected host.
+
 License
 ---
 Copyright (c) 2011-2012 Michael Blakeley. All Rights Reserved.

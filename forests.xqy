@@ -21,21 +21,47 @@ xquery version "1.0-ml";
  :)
 
 declare namespace fs="http://marklogic.com/xdmp/status/forest";
+declare namespace hs="http://marklogic.com/xdmp/status/host" ;
+declare namespace ss="http://marklogic.com/xdmp/status/server" ;
 
 declare variable $LIMIT as xs:integer external ;
 
-(: make sure uri lexicon is enabled :)
+declare variable $FORESTS-MAP := (
+  (: Look at local forests only, using a map of index to id.
+   : Run on other hosts in the cluster to look at their forests.
+   :)
+  let $m := map:map()
+  let $do := (
+    let $local-forests := xdmp:host-forests(xdmp:host())
+    for $fid at $x in xdmp:database-forests(xdmp:database())
+    where $local-forests = $fid
+    return map:put($m, string($x), $fid))
+  return $m );
+
+(: Make sure uri lexicon is enabled. :)
 cts:uris((), 'limit=0'),
-(: Look at local forests only.
- : Run on other hosts in the cluster to look at their forests.
+(: NB - cannot check TRB-FATAL because it is set on the task server :)
+
+(: Make sure we have at least one task server thread per local forest.
+ : This ensures that forest-uris respawning cannot deadlock the task server.
  :)
-let $local-forests := xdmp:host-forests(xdmp:host())
-for $fid at $x in xdmp:database-forests(xdmp:database())
-where $local-forests = $fid
+let $host := xdmp:host()
+let $tid := xdmp:host-status($host)/hs:task-server/hs:task-server-id
+let $threads := xdmp:server-status($host, $tid)/ss:max-threads/data(.)
+let $assert := (
+  if (count(map:keys($FORESTS-MAP)) lt $threads) then ()
+  else error(
+    (), 'TRB-TOOFEWTHREADS',
+    text {
+      'to avoid deadlocks,',
+      'configure the task server with at least',
+      1 + count(map:keys($FORESTS-MAP)), 'threads' }) )
+for $key in map:keys($FORESTS-MAP)
+let $fid := map:get($FORESTS-MAP, $key)
 return xdmp:spawn(
   'forest-uris.xqy',
   (xs:QName('FOREST'), $fid,
-    xs:QName('INDEX'), $x,
+    xs:QName('INDEX'), xs:integer($key),
     xs:QName('LIMIT'), $LIMIT))
 
 (: forests.xqy :)

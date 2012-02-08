@@ -35,6 +35,8 @@ declare variable $LIMIT as xs:integer external ;
 
 declare variable $IS-MAXTASKS := false() ;
 
+declare variable $FOREST-NAME := xdmp:forest-name($FOREST) ;
+
 declare variable $FORESTS := xdmp:database-forests(xdmp:database()) ;
 
 declare variable $COUNT := count($FORESTS) ;
@@ -60,9 +62,37 @@ as xs:boolean?
   else local:maybe-spawn($uri, xdmp:document-assign($uri, $COUNT))
 };
 
+declare function local:spawn-again($millis as xs:integer)
+  as empty-sequence()
+{
+  (: fail as quickly as possible :)
+  if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
+  else error((), 'TRB-FATAL is set'),
+  xdmp:sleep($millis),
+  (: fail as quickly as possible :)
+  if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
+  else error((), 'TRB-FATAL is set'),
+  xdmp:log(
+    text { 'trying respawn', $FOREST-NAME, $millis }, 'debug'),
+  try {
+    xdmp:spawn(
+      'forest-uris.xqy',
+      (xs:QName('FOREST'), $FOREST,
+        xs:QName('INDEX'), $INDEX,
+        xs:QName('LIMIT'), $LIMIT)),
+    xdmp:log(
+      text { 'respawn ok for', $FOREST-NAME, $millis }, 'debug') }
+  catch ($ex) {
+    if ($ex/error:code ne 'XDMP-MAXTASKS') then xdmp:rethrow()
+    else local:spawn-again(2 * $millis) }
+};
+
 declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
   as xs:boolean?
 {
+  if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
+  else error((), 'TRB-FATAL is set')
+  ,
   (: is the document already where it ought to be? :)
   if ($assignment eq $INDEX) then ()
   else try {
@@ -74,17 +104,26 @@ declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
   catch ($ex) {
     if ($ex/error:code ne 'XDMP-MAXTASKS') then xdmp:rethrow()
     else (
-      xdmp:log(text { 'task server queue limit reached' }, 'info'),
-      xdmp:set($IS-MAXTASKS, true())) }
+      xdmp:log(
+        text { 'task server queue limit reached', $FOREST-NAME }, 'info'),
+      xdmp:set($IS-MAXTASKS, true()),
+      (: make an effort to respawn :)
+      local:spawn-again(4 * 1000)) }
 };
 
 xdmp:log(
   text {
-    'forest-uris.xqy: forest', xdmp:forest-name($FOREST), 'limit', $LIMIT })
+    'forest-uris.xqy: forest', $FOREST-NAME, 'limit', $LIMIT })
+,
+(: We need a bail-out mechanism to stop the respawns.
+ : This document acts as a kill signal.
+ :)
+if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
+else error((), 'TRB-FATAL is set')
 ,
 xdmp:log(
   text {
-    'forest-uris.xqy: forest', xdmp:forest-name($FOREST), 'limit', $LIMIT,
+    'forest-uris.xqy: forest', $FOREST-NAME, 'limit', $LIMIT,
     'spawned', $SPAWN-COUNT })
 
 (: forest-uris.xqy :)
