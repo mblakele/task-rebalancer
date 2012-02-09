@@ -61,17 +61,24 @@ let $assert := (
       1 + count(map:keys($FORESTS-MAP)), 'threads' }))
 for $key in map:keys($FORESTS-MAP)
 let $fid := map:get($FORESTS-MAP, $key)
+let $estimate := xdmp:estimate(
+  cts:search(doc(), cts:and-query(()), (), (), $fid))
 (: give larger forests priority :)
-order by xdmp:estimate(
-  cts:search(doc(), cts:and-query(()), (), (), $fid)) descending
-return xdmp:spawn(
-  'forest-uris.xqy',
-  (xs:QName('FOREST'), $fid,
-    xs:QName('INDEX'), xs:integer($key),
-    xs:QName('LIMIT'), $LIMIT,
-    xs:QName('RESPAWN'), $RESPAWN),
-    <options xmlns="xdmp:eval">
-      <time-limit>3600</time-limit>
-    </options>)
+order by $estimate descending
+return (
+  xdmp:spawn(
+    'forest-uris.xqy',
+    (xs:QName('FOREST'), $fid,
+      xs:QName('INDEX'), xs:integer($key),
+      xs:QName('LIMIT'), $LIMIT,
+      xs:QName('RESPAWN'), $RESPAWN),
+      <options xmlns="xdmp:eval">
+        <time-limit>3600</time-limit>
+        </options>),
+  (: Allow ramp-up time, 1-ms per 2000 docs.
+   : NB - with default time limit, this will time out around 1B docs.
+   : If this happens, raise the time limit.
+   :)
+  xdmp:sleep($estimate idiv 2000))
 
 (: forests.xqy :)

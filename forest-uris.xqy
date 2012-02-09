@@ -62,14 +62,6 @@ declare variable $SPAWN-COUNT := count(
       (),
       $FOREST))) ;
 
-(: use a local function to avoid FLWOR, for result streaming :)
-declare function local:maybe-spawn($uri as xs:string)
-as xs:boolean?
-{
-  if ($IS-MAXTASKS) then ()
-  else local:maybe-spawn($uri, xdmp:document-assign($uri, $COUNT))
-};
-
 declare function local:spawn-again($millis as xs:integer)
   as empty-sequence()
 {
@@ -81,7 +73,8 @@ declare function local:spawn-again($millis as xs:integer)
   if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
   else error((), 'TRB-FATAL is set'),
   xdmp:log(
-    text { 'trying respawn', $FOREST-NAME, $millis }, 'debug'),
+    text { 'forest-uris.xqy: trying respawn', $FOREST-NAME, $millis },
+    'fine'),
   try {
     xdmp:spawn(
       'forest-uris.xqy',
@@ -90,7 +83,8 @@ declare function local:spawn-again($millis as xs:integer)
         xs:QName('RESPAWN'), true(),
         xs:QName('LIMIT'), $LIMIT)),
     xdmp:log(
-      text { 'respawn ok for', $FOREST-NAME, $millis }, 'debug') }
+      text { 'forest-uris.xqy: respawn ok for', $FOREST-NAME, $millis },
+      'debug') }
   catch ($ex) {
     if ($ex/error:code ne 'XDMP-MAXTASKS') then xdmp:rethrow()
     else local:spawn-again(2 * $millis) }
@@ -109,14 +103,26 @@ declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
     xdmp:spawn(
       'rebalance.xqy',
       (xs:QName('URI'), $uri,
-        xs:QName('ASSIGNMENT'), subsequence($FORESTS, $assignment, 1))) }
+        xs:QName('ASSIGNMENT'), subsequence($FORESTS, $assignment, 1))),
+    (: give any competing threads a chance :)
+    xdmp:sleep(1) }
   catch ($ex) {
     if ($ex/error:code eq 'XDMP-MAXTASKS') then () else xdmp:rethrow(),
     xdmp:log(
-      text { 'task server queue limit reached', $FOREST-NAME }, 'info'),
+      text {
+        'forest-uris.xqy:', $FOREST-NAME, 'task server queue limit reached,',
+        if ($RESPAWN) then 'will respawn' else 'will not respawn' },
+      'info'),
     xdmp:set($IS-MAXTASKS, true()),
-    if (not($RESPAWN)) then xdmp:log(text { 'will not respawn' }, 'info')
-    else local:spawn-again(4 * 1000) }
+    if (not($RESPAWN)) then () else local:spawn-again(4 * 1000) }
+};
+
+(: use a local function to avoid FLWOR, for result streaming :)
+declare function local:maybe-spawn($uri as xs:string)
+as xs:boolean?
+{
+  if ($IS-MAXTASKS) then ()
+  else local:maybe-spawn($uri, xdmp:document-assign($uri, $COUNT))
 };
 
 (: We need a bail-out mechanism to stop the respawns.
@@ -141,17 +147,9 @@ if ($FOREST-STATUS/fs:current-master-forest eq $FOREST) then () else error(
  :)
 xdmp:lock-for-update($LOCK-URI),
 
-(: when respawning, try to make the race for queue space a little fairer :)
-let $millis := if (not($RESPAWN)) then 0 else xdmp:random(1000 * $COUNT)
-let $sleep := if (not($millis)) then () else xdmp:log(
-  text { 'forest-uris.xqy:', $FOREST-NAME, 'sleeping', $millis, 'ms'})
-let $sleep := if (not($millis)) then () else xdmp:sleep($millis)
-
-(: Looking at the value of SPAWN-COUNT will spawn the tasks.
- : Force this to happen serially, so that the sleep completes.
- :)
-let $d := xdmp:log( text { 'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT })
-return xdmp:log(
+(: Looking at the value of SPAWN-COUNT will spawn the tasks. :)
+xdmp:log( text { 'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT }),
+xdmp:log(
   text {
     'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT,
     'spawned', $SPAWN-COUNT })
