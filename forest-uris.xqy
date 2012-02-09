@@ -112,7 +112,7 @@ declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
       text {
         'forest-uris.xqy:', $FOREST-NAME, 'task server queue limit reached,',
         if ($RESPAWN) then 'will respawn' else 'will not respawn' },
-      'info'),
+      'debug'),
     xdmp:set($IS-MAXTASKS, true()),
     if (not($RESPAWN)) then () else local:spawn-again(4 * 1000) }
 };
@@ -152,6 +152,7 @@ xdmp:log( text { 'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT }),
 xdmp:log(
   text {
     'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT,
-    'spawned', $SPAWN-COUNT })
+    'spawned', $SPAWN-COUNT,
+    if ($IS-MAXTASKS) then 'will respawn' else 'ok' })
 
 (: forest-uris.xqy :)
