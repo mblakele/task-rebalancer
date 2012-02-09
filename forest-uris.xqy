@@ -153,6 +153,6 @@ xdmp:log(
   text {
     'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT,
     'spawned', $SPAWN-COUNT,
-    if ($IS-MAXTASKS) then 'will respawn' else 'ok' })
+    if ($IS-MAXTASKS) then 'will respawn' else 'done' })
 
 (: forest-uris.xqy :)
