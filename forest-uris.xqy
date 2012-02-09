@@ -83,7 +83,7 @@ declare function local:spawn-again($millis as xs:integer)
         xs:QName('RESPAWN'), true(),
         xs:QName('LIMIT'), $LIMIT)),
     xdmp:log(
-      text { 'forest-uris.xqy: respawn ok for', $FOREST-NAME },
+      text { 'forest-uris.xqy:', $FOREST-NAME, 'respawn ok' },
       'debug') }
   catch ($ex) {
     if ($ex/error:code ne 'XDMP-MAXTASKS') then xdmp:rethrow()
