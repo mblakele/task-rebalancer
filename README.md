@@ -22,15 +22,19 @@ you may wish to force some forests to merge.
 Setup
 ---
 
-This project contains three XQuery modules,
+This project contains several XQuery modules,
 intended for use with the built-in Task Server.
+There are four entry point modules:
 
 * `scheduled-rebalancer.xqy`: entry point for use as a scheduled task.
 * `forests.xqy`: entry point for `xdmp:invoke`, HTTP request, or scheduled task.
-* `forest-uris.xqy`: spawned by `forests.xqy` to rebalance one forest.
-* `rebalance.xqy`: spawned by `forest-uris.xqy` to move one document.
 * `disable.xqy`: spawn this task to keep rebalancer tasks from running.
 * `enable.xqy`: spawn this task to re-enable rebalancer tasks.
+
+Those four modules work with two task modules:
+
+* `forest-uris.xqy`: spawned by `forests.xqy` to rebalance one forest.
+* `rebalance.xqy`: spawned by `forest-uris.xqy` to move one document.
 
 The database that you wish to rebalance must have the URI lexicon enabled.
 If that lexicon is not enabled, you must enable it and reindex.
@@ -51,7 +55,8 @@ To start the rebalancer manually, use this XQuery expression:
       </options>)
 
 Be careful not to invoke `forests.xqy` multiple times,
-especially with `RESPAWN` set.
+especially with `RESPAWN` set. Doing so should not damage your system,
+but may will probably waste resources and cause extra work.
 
 To run the rebalancer as a scheduled task, use `scheduled-rebalancer.xqy`.
 
