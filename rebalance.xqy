@@ -28,9 +28,10 @@ declare variable $URI as xs:string external ;
  : This document acts as a kill signal.
  :)
 if (xdmp:get-server-field('TRB-FATAL')) then xdmp:log(
-  'TRB-FATAL is set', 'fine')
+  'rebalance.xqy: TRB-FATAL is set', 'fine')
 else if ($ASSIGNMENT = xdmp:document-forest($URI)) then xdmp:log(
-  text { $URI, 'is already in', $ASSIGNMENT }, 'debug')
+  text { 'rebalance.xqy:', $URI, 'is already in', $ASSIGNMENT },
+  'debug')
 (: Update the existing document, by overwriting it.
  : explicitly place the document in the correct forest.
  :)
