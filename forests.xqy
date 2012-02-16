@@ -69,6 +69,7 @@ let $estimate := xdmp:estimate(
 (: give larger forests priority :)
 order by $estimate descending
 return (
+  xdmp:forest-name($fid),
   xdmp:spawn(
     'forest-uris.xqy',
     (xs:QName('FOREST'), $fid,
