@@ -45,7 +45,9 @@ declare variable $FORESTS-MAP := (
 
 (: Make sure uri lexicon is enabled. :)
 cts:uris((), 'limit=0'),
-(: NB - cannot check TRB-FATAL because it is set on the task server :)
+(: NB - cannot check trb:maybe-fatal,
+ : because the state is only set on the task server
+ :)
 
 (: Make sure we have at least one task server thread per local forest.
  : This prevents forest-uris respawning from deadlocking the task server.

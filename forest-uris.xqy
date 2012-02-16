@@ -55,7 +55,12 @@ declare variable $FORESTS-COUNT := count($FORESTS) ;
 declare variable $SPAWN-COUNT := count(
   local:maybe-spawn(
     cts:uris(
-      (), (
+      (: If this forest was respawned due to maxtasks,
+       : this ensures that we pick up where we left off.
+       : In combination with the lock-for-update call in this module,
+       : it also protects against multiple tasks running on the same forest.
+       :)
+      $URIS-START, (
         'document',
         if ($LIMIT lt 1) then () else (
           for $i in ('limit', 'sample', 'truncate')
@@ -65,7 +70,9 @@ declare variable $SPAWN-COUNT := count(
       (),
       $FOREST))) ;
 
-declare function local:spawn-again($millis as xs:integer)
+declare variable $URIS-START := trb:uris-start($FOREST) ;
+
+declare function local:spawn-again($uri as xs:string, $millis as xs:integer)
   as empty-sequence()
 {
   (: fail as quickly as possible :)
@@ -83,12 +90,13 @@ declare function local:spawn-again($millis as xs:integer)
         xs:QName('INDEX'), $INDEX,
         xs:QName('RESPAWN'), true(),
         xs:QName('LIMIT'), $LIMIT)),
+    trb:uris-start-set($FOREST, $uri),
     xdmp:log(
       text { 'forest-uris.xqy:', $FOREST-NAME, 'respawn ok' },
       'debug') }
   catch ($ex) {
     if ($ex/error:code ne 'XDMP-MAXTASKS') then xdmp:rethrow()
-    else local:spawn-again(2 * $millis) }
+    else local:spawn-again($uri, 2 * $millis) }
 };
 
 declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
@@ -114,7 +122,7 @@ declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
         if ($RESPAWN) then 'will respawn' else 'will not respawn' },
       'debug'),
     xdmp:set($IS-MAXTASKS, true()),
-    if (not($RESPAWN)) then () else local:spawn-again(4 * 1000) }
+    if (not($RESPAWN)) then () else local:spawn-again($uri, 4 * 1000) }
 };
 
 (: use a local function to avoid FLWOR, for result streaming :)
@@ -125,8 +133,8 @@ as xs:boolean?
   else local:maybe-spawn($uri, xdmp:document-assign($uri, $FORESTS-COUNT))
 };
 
-trb:maybe-fatal()
-,
+trb:maybe-fatal(),
+
 (: make sure we have not suffered a forest failover event :)
 if ($FOREST-STATUS/fs:host-id eq xdmp:host()) then () else error(
   (), 'TRB-NOTLOCAL',
@@ -140,15 +148,21 @@ if ($FOREST-STATUS/fs:current-master-forest eq $FOREST) then () else error(
 (: Grabbing the URI lock acts like a semaphore, to keep other tasks out.
  : This does not prevent multiple forest-uris tasks from respawning,
  : but it does minimize the resulting havoc.
+ : Elsewhere, URIS-START acts as another guard against extra rebalancing work.
  :)
 xdmp:lock-for-update($LOCK-URI),
 
+trb:maybe-fatal(),
+xdmp:log(
+  text {
+    'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT,
+    if (not($URIS-START)) then () else 'starting from', $URIS-START }),
 (: Looking at the value of SPAWN-COUNT will spawn the tasks. :)
-xdmp:log( text { 'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT }),
 xdmp:log(
   text {
     'forest-uris.xqy:', $FOREST-NAME, 'limit', $LIMIT,
     'spawned', $SPAWN-COUNT,
-    if ($IS-MAXTASKS) then 'will respawn' else 'done' })
+    if ($IS-MAXTASKS) then 'will respawn' else 'done' }),
+if ($IS-MAXTASKS) then () else trb:uris-start-set($FOREST, ())
 
 (: forest-uris.xqy :)
