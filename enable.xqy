@@ -20,4 +20,9 @@ xquery version "1.0-ml";
  :
  :)
 
-xdmp:set-server-field('TRB-FATAL', false())
+import module namespace trb="com.blakeley.task-rebalancer"
+  at "lib-trb.xqy" ;
+
+trb:fatal-set(false())
+
+(: enable :)

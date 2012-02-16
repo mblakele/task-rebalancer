@@ -20,6 +20,9 @@ xquery version "1.0-ml";
  :
  :)
 
+import module namespace trb="com.blakeley.task-rebalancer"
+  at "lib-trb.xqy" ;
+
 declare namespace fs="http://marklogic.com/xdmp/status/forest" ;
 
 (: This code is designed to minimize FLWOR expressions,
@@ -47,7 +50,7 @@ declare variable $FOREST-STATUS := xdmp:forest-status($FOREST) ;
 
 declare variable $FORESTS := xdmp:database-forests(xdmp:database()) ;
 
-declare variable $COUNT := count($FORESTS) ;
+declare variable $FORESTS-COUNT := count($FORESTS) ;
 
 declare variable $SPAWN-COUNT := count(
   local:maybe-spawn(
@@ -66,12 +69,10 @@ declare function local:spawn-again($millis as xs:integer)
   as empty-sequence()
 {
   (: fail as quickly as possible :)
-  if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
-  else error((), 'TRB-FATAL is set'),
+  trb:maybe-fatal(),
   xdmp:sleep($millis),
   (: fail as quickly as possible :)
-  if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
-  else error((), 'TRB-FATAL is set'),
+  trb:maybe-fatal(),
   xdmp:log(
     text { 'forest-uris.xqy: trying respawn', $FOREST-NAME, $millis },
     'fine'),
@@ -93,9 +94,8 @@ declare function local:spawn-again($millis as xs:integer)
 declare function local:maybe-spawn($uri as xs:string, $assignment as xs:integer)
   as xs:boolean?
 {
-  if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
-  else error((), 'TRB-FATAL is set')
-  ,
+  (: fail as quickly as possible :)
+  trb:maybe-fatal(),
   (: is the document already where it ought to be? :)
   if ($assignment eq $INDEX) then ()
   else try {
@@ -122,14 +122,10 @@ declare function local:maybe-spawn($uri as xs:string)
 as xs:boolean?
 {
   if ($IS-MAXTASKS) then ()
-  else local:maybe-spawn($uri, xdmp:document-assign($uri, $COUNT))
+  else local:maybe-spawn($uri, xdmp:document-assign($uri, $FORESTS-COUNT))
 };
 
-(: We need a bail-out mechanism to stop the respawns.
- : This document acts as a kill signal.
- :)
-if (not(xdmp:get-server-field('TRB-FATAL'))) then ()
-else error((), 'TRB-FATAL is set')
+trb:maybe-fatal()
 ,
 (: make sure we have not suffered a forest failover event :)
 if ($FOREST-STATUS/fs:host-id eq xdmp:host()) then () else error(

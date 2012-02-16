@@ -20,15 +20,18 @@ xquery version "1.0-ml";
  :
  :)
 
+import module namespace trb="com.blakeley.task-rebalancer"
+  at "lib-trb.xqy" ;
+
 declare variable $ASSIGNMENT as xs:unsignedLong external ;
 
 declare variable $URI as xs:string external ;
 
 (: We need a bail-out mechanism to stop the respawns.
  : This document acts as a kill signal.
+ : Do not throw an error, since that could flood the server logs.
  :)
-if (xdmp:get-server-field('TRB-FATAL')) then xdmp:log(
-  'rebalance.xqy: TRB-FATAL is set', 'fine')
+if ($trb:FATAL) then xdmp:log('rebalance.xqy: FATAL is set: stopping', 'fine')
 else if ($ASSIGNMENT = xdmp:document-forest($URI)) then xdmp:log(
   text { 'rebalance.xqy:', $URI, 'is already in', $ASSIGNMENT },
   'debug')

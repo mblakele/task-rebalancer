@@ -20,6 +20,9 @@ xquery version "1.0-ml";
  :
  :)
 
+import module namespace trb="com.blakeley.task-rebalancer"
+  at "lib-trb.xqy" ;
+
 declare namespace fs="http://marklogic.com/xdmp/status/forest";
 declare namespace hs="http://marklogic.com/xdmp/status/host" ;
 declare namespace ss="http://marklogic.com/xdmp/status/server" ;
