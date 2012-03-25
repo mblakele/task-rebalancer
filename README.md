@@ -106,8 +106,7 @@ Occasionally it can be useful to completely empty a forest
 of any existing documents. The `forest-uris-evacuate.xqy` module
 is designed to do just that. Do *not* invoke it via `forests.xqy`.
 Instead, invoke it directly for the forest that you want to empty.
-If there is more than one such forest, you can use a FLWOR expression
-to `xdmp:spawn` one task per forest.
+After the forest has emptied, detach it from your database.
 
     xdmp:spawn(
       "forest-uris-evacuate.xqy",
@@ -120,6 +119,10 @@ to `xdmp:spawn` one task per forest.
         <root>/path/to/mblakele-task-rebalancer/</root>
         <time-limit>3600</time-limit>
       </options>)
+
+Note that if there is more than one such forest, you will have to
+either modify the script to exclude all those forests,
+or run the evacuations serially and detach each forest as it empties.
 
 Troubleshooting
 ---
