@@ -52,6 +52,7 @@ To start the rebalancer manually, use this XQuery expression:
     xdmp:invoke(
       'forests.xqy',
       (xs:QName('LIMIT'), 0,
+       xs:QName('MODULE'), 'forest-uris.xqy',
        xs:QName('RESPAWN'), true()),
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database('DATABASE-NAME') }</database>

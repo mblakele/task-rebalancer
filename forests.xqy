@@ -29,6 +29,8 @@ declare namespace ss="http://marklogic.com/xdmp/status/server" ;
 
 declare variable $LIMIT as xs:integer external ;
 
+declare variable $MODULE as xs:string external ;
+
 declare variable $RESPAWN as xs:boolean external ;
 
 declare variable $FORESTS-MAP := (
@@ -73,14 +75,12 @@ order by $estimate descending
 return (
   xdmp:forest-name($fid),
   xdmp:spawn(
-    'forest-uris.xqy',
+    $MODULE,
     (xs:QName('FOREST'), $fid,
       xs:QName('INDEX'), xs:integer($key),
       xs:QName('LIMIT'), $LIMIT,
       xs:QName('RESPAWN'), $RESPAWN),
-      <options xmlns="xdmp:eval">
-        <time-limit>3600</time-limit>
-        </options>),
+      <options xmlns="xdmp:eval"><time-limit>3600</time-limit></options>),
   (: Allow ramp-up time, 1-ms per 2000 docs.
    : NB - with default time limit, this will time out around 1B docs.
    : If this happens, raise the time limit.

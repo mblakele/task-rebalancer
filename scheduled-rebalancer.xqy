@@ -23,5 +23,8 @@ xquery version "1.0-ml";
 xdmp:invoke(
   'forests.xqy',
   (xs:QName('LIMIT'), 0,
+    xs:QName('MODULE'), 'forest-uris.xqy',
     xs:QName('RESPAWN'), false()),
     <options xmlns="xdmp:eval"></options>)
+
+(: scheduled-rebalancer.xqy :)
