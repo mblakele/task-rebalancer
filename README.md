@@ -121,8 +121,7 @@ After the forest has emptied, detach it from your database.
       </options>)
 
 Note that if there is more than one such forest, you will have to
-either modify the script to exclude all those forests,
-or run the evacuations serially and detach each forest as it empties.
+modify the script to exclude all those forests.
 
 Troubleshooting
 ---
