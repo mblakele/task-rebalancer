@@ -60,7 +60,7 @@ To start the rebalancer manually, use this XQuery expression:
 
 Be careful not to invoke `forests.xqy` multiple times,
 especially with `RESPAWN` set. Doing so should not damage your system,
-but may will probably waste resources and cause extra work.
+but may waste resources and cause extra work.
 
 To run the rebalancer as a scheduled task, use `scheduled-rebalancer.xqy`.
 
