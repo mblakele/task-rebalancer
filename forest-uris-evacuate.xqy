@@ -26,9 +26,9 @@ import module namespace trb="com.blakeley.task-rebalancer"
  : After all uri-tasks have been run, the target forest should be empty.
  :)
 
-(: Usage (this does not use forests.xqy)
+(: Usage - note that this does not use forests.xqy!
 
-xdmp:invoke(
+xdmp:spawn(
   "forest-uris-evacuate.xqy",
   (xs:QName('FOREST'), xdmp:forest('forest-to-evacuate'),
    xs:QName('INDEX'), -1,

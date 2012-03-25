@@ -99,6 +99,28 @@ This requirement helps avoid deadlocks.
 Beyond that minimum, you can use the Task Server thread pool size
 to throttle the impact of the rebalance tasks on other users of the system.
 
+Evacuating a Forest
+---
+
+Occasionally it can be useful to completely empty a forest
+of any existing documents. The `forest-uris-evacuate.xqy` module
+is designed to do just that. Do *not* invoke it via `forests.xqy`.
+Instead, invoke it directly for the forest that you want to empty.
+If there is more than one such forest, you can use a FLWOR expression
+to `xdmp:spawn` one task per forest.
+
+    xdmp:spawn(
+      "forest-uris-evacuate.xqy",
+      (xs:QName('FOREST'), xdmp:forest('forest-to-evacuate'),
+       xs:QName('INDEX'), -1,
+       xs:QName('LIMIT'), 0,
+       xs:QName('RESPAWN'), true()),
+      <options xmlns="xdmp:eval">
+        <database>{ xdmp:database() }</database>
+        <root>/path/to/mblakele-task-rebalancer/</root>
+        <time-limit>3600</time-limit>
+      </options>)
+
 Troubleshooting
 ---
 
