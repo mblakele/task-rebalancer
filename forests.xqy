@@ -70,7 +70,7 @@ for $key in map:keys($FORESTS-MAP)
 let $fid := map:get($FORESTS-MAP, $key)
 let $estimate := xdmp:estimate(
   cts:search(doc(), cts:and-query(()), (), (), $fid))
-(: give larger forests priority :)
+(: give larger forests a head start :)
 order by $estimate descending
 return (
   xdmp:forest-name($fid),
