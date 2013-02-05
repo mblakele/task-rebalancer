@@ -1,7 +1,7 @@
 xquery version "1.0-ml";
 
 (:
- : Copyright (c) 2011-2012 Michael Blakeley. All Rights Reserved.
+ : Copyright (c) 2011-2013 Michael Blakeley. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.

@@ -1,6 +1,6 @@
 xquery version "1.0-ml";
 (:
- : Copyright (c) 2011-2012 Michael Blakeley. All Rights Reserved.
+ : Copyright (c) 2011-2013 Michael Blakeley. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -51,6 +51,9 @@ declare variable $LIMIT as xs:integer external ;
 
 declare variable $RESPAWN as xs:boolean external ;
 
+(: Clear any state. :)
+trb:uris-start-set($FOREST, ()),
+
 trb:spawn(
   'forest-uris-evacuate.xqy',
   $FOREST,
@@ -62,4 +65,4 @@ trb:spawn(
   $RESPAWN,
   $LIMIT)
 
-(: forest-uris.xqy :)
+(: forest-uris-evacuate.xqy :)

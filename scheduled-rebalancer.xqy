@@ -1,7 +1,7 @@
 xquery version "1.0-ml";
 
 (:
- : Copyright (c) 2011-2012 Michael Blakeley. All Rights Reserved.
+ : Copyright (c) 2011-2013 Michael Blakeley. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -20,9 +20,13 @@ xquery version "1.0-ml";
  :
  :)
 
+(:
+ : To limit the number of documents per scheduled task invocation,
+ : set LIMIT to a positive value.
+:)
 xdmp:invoke(
   'forests.xqy',
-  (xs:QName('LIMIT'), 0,
+  (xs:QName('LIMIT'), 5000,
     xs:QName('MODULE'), 'forest-uris.xqy',
     xs:QName('RESPAWN'), false()),
     <options xmlns="xdmp:eval"></options>)

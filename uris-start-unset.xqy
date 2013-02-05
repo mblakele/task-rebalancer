@@ -1,4 +1,5 @@
 xquery version "1.0-ml";
+
 (:
  : Copyright (c) 2011-2013 Michael Blakeley. All Rights Reserved.
  :
@@ -22,28 +23,12 @@ xquery version "1.0-ml";
 import module namespace trb="com.blakeley.task-rebalancer"
   at "lib-trb.xqy" ;
 
-(: This code is designed to minimize FLWOR expressions,
- : and maximize streaming.
- : With no tasks to spawn, this checks URIS at 20-80 k/sec,
- : depending on CPU speed and whether or not the URI lexicon is warm.
- :)
+declare variable $FOREST as xs:anyAtomicType external ;
 
-(: the forest to rebalance :)
-declare variable $FOREST as xs:unsignedLong external ;
+xdmp:log(text {'uris-start-unset.xqy:', $FOREST }, 'info'),
+trb:uris-start-set(
+  if ($FOREST castable as xs:unsignedLong) then xs:unsignedLong($FOREST)
+  else xdmp:forest($FOREST),
+  ())
 
-declare variable $INDEX as xs:integer external ;
-
-declare variable $LIMIT as xs:integer external ;
-
-declare variable $RESPAWN as xs:boolean external ;
-
-trb:spawn(
-  'forest-uris.xqy',
-  $FOREST,
-  $INDEX,
-  xdmp:forest-status($FOREST),
-  xdmp:database-forests(xdmp:database()),
-  $RESPAWN,
-  $LIMIT)
-
-(: forest-uris.xqy :)
+(: uris-start-unset :)

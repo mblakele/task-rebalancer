@@ -1,7 +1,7 @@
 xquery version "1.0-ml";
 
 (:
- : Copyright (c) 2011-2012 Michael Blakeley. All Rights Reserved.
+ : Copyright (c) 2011-2013 Michael Blakeley. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -33,17 +33,7 @@ declare variable $MODULE as xs:string external ;
 
 declare variable $RESPAWN as xs:boolean external ;
 
-declare variable $FORESTS-MAP := (
-  (: Look at local forests only, using a map of index to id.
-   : Run on other hosts in the cluster to look at their forests.
-   :)
-  let $m := map:map()
-  let $do := (
-    let $local-forests := xdmp:host-forests(xdmp:host())
-    for $fid at $x in xdmp:database-forests(xdmp:database())
-    where $local-forests = $fid
-    return map:put($m, string($x), $fid))
-  return $m );
+declare variable $FORESTS-MAP := trb:forests-map() ;
 
 (: Make sure uri lexicon is enabled. :)
 cts:uris((), 'limit=0'),
@@ -66,8 +56,17 @@ let $assert := (
       'to avoid deadlocks,',
       'configure the task server with at least',
       1 + count(map:keys($FORESTS-MAP)), 'threads' }))
+(: Clear any state if respawn is set.
+ : If respawn is not set, this may be a scheduled task.
+ :)
+let $_ := if (not($RESPAWN)) then () else (
+  for $key in map:keys($FORESTS-MAP)
+  return xdmp:spawn(
+    'uris-start-unset.xqy',
+    (xs:QName('FOREST'), xdmp:forest-name(xs:unsignedLong($key)))))
 for $key in map:keys($FORESTS-MAP)
-let $fid := map:get($FORESTS-MAP, $key)
+let $x := map:get($FORESTS-MAP, $key)
+let $fid := xs:unsignedLong($key)
 let $estimate := xdmp:estimate(
   cts:search(doc(), cts:and-query(()), (), (), $fid))
 (: give larger forests a head start :)
@@ -77,7 +76,7 @@ return (
   xdmp:spawn(
     $MODULE,
     (xs:QName('FOREST'), $fid,
-      xs:QName('INDEX'), xs:integer($key),
+      xs:QName('INDEX'), $x,
       xs:QName('LIMIT'), $LIMIT,
       xs:QName('RESPAWN'), $RESPAWN),
       <options xmlns="xdmp:eval"><time-limit>3600</time-limit></options>),

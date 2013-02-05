@@ -78,7 +78,8 @@ you can invoke `forests.xqy` on each host in your cluster.
 This improves concurrency in clustered environments.
 
 The `LIMIT` option caps the number of URIs that will be checked for rebalancing.
-This should usually be 0, except when debugging.
+This should usually be 0, except when debugging
+or when you wish to throttle the rebalancer.
 The Task Server queue size limit will have a similar effect,
 since large numbers of URIs will quickly fill up the Task Server queue.
 
@@ -175,7 +176,7 @@ it may be faster to restart MarkLogic on the affected host.
 
 License
 ---
-Copyright (c) 2011-2012 Michael Blakeley. All Rights Reserved.
+Copyright (c) 2011-2013 Michael Blakeley. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
