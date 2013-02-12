@@ -54,15 +54,17 @@ declare variable $RESPAWN as xs:boolean external ;
 (: Clear any state. :)
 trb:uris-start-set($FOREST, ()),
 
-trb:spawn(
+let $target-forests := for $forest in xdmp:database-forests(xdmp:database())[not(. eq $FOREST)]
+                       return if ("all" = xdmp:forest-status($forest)//fs:updates-allowed/text()) then $forest else ()
+return 				   
+  trb:spawn(
   'forest-uris-evacuate.xqy',
   $FOREST,
   (: never match existing documents :)
   -1,
   xdmp:forest-status($FOREST),
   (: current forest is not eligible for placement :)
-  xdmp:database-forests(xdmp:database())[not(. eq $FOREST)],
+  $target-forests,
   $RESPAWN,
-  $LIMIT)
-
+  $LIMIT),
 (: forest-uris-evacuate.xqy :)
