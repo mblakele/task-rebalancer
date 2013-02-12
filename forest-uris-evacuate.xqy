@@ -42,6 +42,9 @@ xdmp:spawn(
 
  :)
 
+declare namespace fs="http://marklogic.com/xdmp/status/forest"; 
+
+
 (: the forest to rebalance :)
 declare variable $FOREST as xs:unsignedLong external ;
 
@@ -54,15 +57,25 @@ declare variable $RESPAWN as xs:boolean external ;
 (: Clear any state. :)
 trb:uris-start-set($FOREST, ()),
 
-trb:spawn(
+
+let $target-forests := for $forest in xdmp:database-forests(xdmp:database())[not(. eq $FOREST)]
+                       where xdmp:forest-status($forest)//fs:updates-allowed[. = "all"]
+                       return $forest
+return 
+(				   
+  trb:spawn(
   'forest-uris-evacuate.xqy',
   $FOREST,
   (: never match existing documents :)
   -1,
   xdmp:forest-status($FOREST),
   (: current forest is not eligible for placement :)
-  xdmp:database-forests(xdmp:database())[not(. eq $FOREST)],
+  $target-forests,
   $RESPAWN,
-  $LIMIT)
+  $LIMIT),
+  
+xdmp:log(concat("forest-uri-evacuate.xqy: Evacuate From ", xdmp:forest-name($FOREST), " to ", fn:count( $target-forests ), "  forests")),
+for $forest in $target-forests return xdmp:log(concat("forest-uri-evacuate.xqy: Evacuate To ", xdmp:forest-name($forest) ))
 
+)
 (: forest-uris-evacuate.xqy :)
