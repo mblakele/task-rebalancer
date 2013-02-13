@@ -25,10 +25,12 @@ import module namespace trb="com.blakeley.task-rebalancer"
 
 declare variable $FOREST as xs:anyAtomicType external ;
 
-xdmp:log(text {'uris-start-unset.xqy:', $FOREST }, 'info'),
-trb:uris-start-set(
+declare variable $ID as xs:unsignedLong := (
   if ($FOREST castable as xs:unsignedLong) then xs:unsignedLong($FOREST)
-  else xdmp:forest($FOREST),
-  ())
+  else xdmp:forest($FOREST) ) ;
+
+xdmp:log(text {'[uris-start-unset.xqy]', $FOREST }, 'info'),
+trb:lock-for-update($ID),
+trb:uris-start-set($ID, ())
 
 (: uris-start-unset :)

@@ -24,9 +24,11 @@ import module namespace trb="com.blakeley.task-rebalancer"
 
 (: This version of forests-uris.xqy is designed to evacuate a forest.
  : After all uri-tasks have been run, the target forest should be empty.
- :)
-
-(: Usage - note that this does not use forests.xqy!
+ :
+ : NOTE
+ : This script is for test purposes only.
+ : In real life, set the forest updates-allowed=delete-only
+ : and invoke forests.xqy instead.
 
 xdmp:spawn(
   "forest-uris-evacuate.xqy",
@@ -42,10 +44,14 @@ xdmp:spawn(
 
  :)
 
-(: the forest to rebalance :)
+(: The forest to empty out. :)
 declare variable $FOREST as xs:unsignedLong external ;
 
-declare variable $INDEX as xs:integer external ;
+(: The forest(s) to target.
+ : Current forest is not eligible for placement.
+ :)
+declare variable $TARGETS as xs:unsignedLong+ := trb:database-forests()[
+  not(. eq $FOREST)] ;
 
 declare variable $LIMIT as xs:integer external ;
 
@@ -60,8 +66,7 @@ trb:spawn(
   (: never match existing documents :)
   -1,
   xdmp:forest-status($FOREST),
-  (: current forest is not eligible for placement :)
-  xdmp:database-forests(xdmp:database())[not(. eq $FOREST)],
+  $TARGETS,
   $RESPAWN,
   $LIMIT)
 

@@ -71,6 +71,13 @@ as xs:string?
   xdmp:get-server-field(trb:uris-start-name($forest))
 };
 
+declare function trb:lock-for-update(
+  $forest as xs:unsignedLong)
+as empty-sequence()
+{
+  xdmp:lock-for-update(concat('com.blakeley.task-rebalancer/', $forest))
+};
+
 (: clear or set value of the uris-start state :)
 declare function trb:uris-start-set(
   $forest as xs:unsignedLong,
@@ -99,7 +106,7 @@ declare function trb:spawn-again(
   (: fail as quickly as possible :)
   trb:maybe-fatal(),
   xdmp:log(
-    text { concat($module, ':'), 'trying respawn', $forest-name, $millis },
+    text { '[trb:spawn-again] trying', $module, $forest-name, $millis },
     'fine'),
   try {
     xdmp:spawn(
@@ -110,7 +117,7 @@ declare function trb:spawn-again(
         xs:QName('LIMIT'), $limit)),
     xdmp:log(
       text {
-        concat($module, ':'), 'respawned', $forest-name,
+        '[trb:spawn-again] respawned', $module, $forest-name,
         'after', $millis, 'ms',
         'with', $forest, $index, true(), $limit },
       'debug') }
@@ -126,25 +133,30 @@ declare function trb:maybe-spawn2(
   $forest-name as xs:string,
   $uri as xs:string,
   $index as xs:integer,
-  $forests as xs:unsignedLong+,
+  $targets as xs:unsignedLong+,
   $assignment as xs:integer)
 {
   xdmp:log(
     text {
-      'trb:maybe-spawn2:', $forest-name, $uri, $index, $assignment },
+      '[trb:maybe-spawn2]', $forest-name, $uri, $index, $assignment },
     'fine'),
   (: fail as quickly as possible :)
   trb:maybe-fatal(),
-  (: Local to this module, keep track of the last uri checked. :)
-  xdmp:set($URI-LAST, $uri),
+  (: Local to this module, keep track of the last uri checked.
+   : This must be done if we skip the spawn,
+   : or if the spawn is successful,
+   : but not if the spawn fails.
+   :)
   (: is the document already where it ought to be? :)
-  if ($assignment eq $index) then () else (
+  if ($assignment eq $index) then xdmp:set($URI-LAST, $uri)
+  else (
     xdmp:spawn(
       'rebalance.xqy',
       (xs:QName('URI'), $uri,
-        xs:QName('ASSIGNMENT'), subsequence($forests, $assignment, 1))),
+        xs:QName('ASSIGNMENT'), subsequence($targets, $assignment, 1))),
     (: Increment the task count. :)
     xdmp:set($TASKS-COUNT, 1 + $TASKS-COUNT),
+    xdmp:set($URI-LAST, $uri),
     (: give any competing threads a chance :)
     xdmp:sleep(1) )
 };
@@ -155,7 +167,7 @@ declare function trb:maybe-spawn(
   $uris-start as xs:string?,
   $uri as xs:string,
   $index as xs:integer,
-  $forests as xs:unsignedLong*)
+  $targets as xs:unsignedLong+)
 {
   (: It is tricky to advance the starting point,
    : so we expect that the first URI of this batch
@@ -165,11 +177,11 @@ declare function trb:maybe-spawn(
   else (
     xdmp:log(
       text {
-        'trb:maybe-spawn:', $forest-name, $uri, $index },
+        '[trb:maybe-spawn]', $forest-name, $uri, $index },
       'fine'),
     trb:maybe-spawn2(
       $forest-name, $uri, $index,
-      $forests, xdmp:document-assign($uri, count($forests))))
+      $targets, xdmp:document-assign($uri, count($targets))))
 };
 
 declare function trb:spawn(
@@ -178,14 +190,14 @@ declare function trb:spawn(
   $index as xs:integer,
   $forest-name as xs:string,
   $uris-start as xs:string?,
-  $forests as xs:unsignedLong*,
+  $targets as xs:unsignedLong+,
   $respawn as xs:boolean,
   $limit as xs:integer)
 {
   xdmp:log(
     text {
-      concat($module, ':'), $forest-name, 'limit', $limit,
-      if (not($uris-start)) then () else 'starting from', $uris-start },
+      '[trb:spawn]', $module, $forest-name, 'limit', $limit,
+      'starting from', xdmp:describe($uris-start) },
     'info'),
   (: Use function mapping to avoid FLWOR, for streaming. :)
   trb:maybe-spawn(
@@ -202,12 +214,13 @@ declare function trb:spawn(
       ('document',
         if ($limit lt 1) then () else concat('limit=', $limit)),
       (), (), $forest),
-    $index, $forests)
+    $index, $targets)
 };
 
 declare function trb:spawn-preflight(
   $forest as xs:unsignedLong,
-  $forest-status as element())
+  $forest-status as element(fs:forest-status),
+  $targets as xs:unsignedLong+)
 {
   (: preflight :)
   trb:maybe-fatal(),
@@ -217,7 +230,15 @@ declare function trb:spawn-preflight(
    : Elsewhere, URIS-START acts as another guard against extra rebalancing work,
    : as do the document locks themselves.
    :)
-  xdmp:lock-for-update(concat('com.blakeley.task-rebalancer/', $forest)),
+  trb:lock-for-update($forest),
+  (: Make sure updates are allowed. :)
+  for $tfs in xdmp:forest-status($targets) return (
+    if ($tfs/fs:updates-allowed eq 'all') then () else error(
+      (), 'TRB-NOUPDATES',
+      text {
+        $tfs/fs:forest-name,
+        'cannot be a rebalancer target because updates-allowed =',
+        $tfs/fs:updates-allowed })),
   (: Make sure we have not suffered a forest failover event.
    : NB - this does not protect against failover events after tasks are queued.
    :)
@@ -249,7 +270,7 @@ declare function trb:spawn-postflight(
   else (
     xdmp:log(
       text {
-        'trb:spawn-postflight:', xdmp:forest-name($forest),
+        '[trb:spawn-postflight]', xdmp:forest-name($forest),
         'task server queue limit reached,',
         if ($respawn) then 'will respawn' else 'will not respawn' },
       'debug'),
@@ -261,7 +282,7 @@ declare function trb:spawn-postflight(
   (: log the final count :)
   xdmp:log(
     text {
-      'trb:spawn-postflight:', $forest-name, 'limit', $limit,
+      '[trb:spawn-postflight]', $forest-name, 'limit', $limit,
       'spawned', $tasks-count,
       'start', xdmp:describe(trb:uris-start($forest)),
       'last', xdmp:describe($uri-last),
@@ -286,17 +307,23 @@ declare function trb:spawn(
   $forest as xs:unsignedLong,
   $index as xs:integer,
   $forest-status as element(),
-  $forests as xs:unsignedLong*,
+  $targets as xs:unsignedLong*,
   $respawn as xs:boolean,
   $limit as xs:integer)
 {
-  trb:spawn-preflight($forest, $forest-status),
+  xdmp:log(
+    text {
+      '[trb:spawn]', $module, $forest, $index,
+      xdmp:describe($forest-status),
+      xdmp:forest-name($targets),
+      $respawn, $limit }, 'debug'),
+  trb:spawn-preflight($forest, $forest-status, $targets),
   trb:maybe-fatal(),
 
   try {
     trb:spawn(
       $module, $forest, $index, $forest-status/fs:forest-name,
-      trb:uris-start($forest), $forests, $respawn, $limit),
+      trb:uris-start($forest), $targets, $respawn, $limit),
     trb:spawn-postflight(
       $module, $forest, $index,
       $forest-status/fs:forest-name, $respawn, $limit,
@@ -309,18 +336,33 @@ declare function trb:spawn(
       true(), $TASKS-COUNT, $URI-LAST) }
 };
 
+(: Return only forests that should be considered as rebalancing targets.
+ : All updates must be enabled.
+ :)
+declare function trb:database-forests()
+as xs:unsignedLong*
+{
+  (: The FLWOR is here to preserve stable order. :)
+  for $f in xdmp:database-forests(xdmp:database())
+  return xdmp:forest-status($f)[ fs:updates-allowed eq 'all' ]/fs:forest-id
+};
+
 declare function trb:forests-map()
 as map:map
 {
-  (: Look at local forests only, using a map of id to index.
+  (: Look at local forests only, using a map of id to estimate.
    : Run on other hosts in the cluster to look at their forests.
+   : The FLWOR is here to preserve stable order.
    :)
   let $m := map:map()
   let $do := (
     let $local-forests := xdmp:host-forests(xdmp:host())
-    for $fid at $x in xdmp:database-forests(xdmp:database())
+    for $fid in xdmp:database-forests(xdmp:database())
     where $local-forests = $fid
-    return map:put($m, string($fid), $x))
+    return map:put(
+      $m, string($fid),
+      xdmp:estimate(
+        cts:search(collection(), cts:and-query(()), (), (), $fid))))
   return $m
 };
 

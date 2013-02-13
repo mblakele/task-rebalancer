@@ -27,7 +27,7 @@ declare variable $FOREST as xs:anyAtomicType external ;
 
 xdmp:log(
   text {
-    'uris-start.xqy:', $FOREST,
+    '[uris-start.xqy]', $FOREST,
     xdmp:describe(
       trb:uris-start(
         if ($FOREST castable as xs:unsignedLong) then xs:unsignedLong($FOREST)

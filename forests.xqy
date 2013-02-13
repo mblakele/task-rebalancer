@@ -59,31 +59,35 @@ let $assert := (
 (: Clear any state if respawn is set.
  : If respawn is not set, this may be a scheduled task.
  :)
-let $_ := if (not($RESPAWN)) then () else (
+let $_ := xdmp:log(text { '[forests.xqy] respawn', $RESPAWN }, 'debug')
+let $_ := (
+  if (not($RESPAWN)) then () else (
+    for $key in map:keys($FORESTS-MAP)
+    return xdmp:spawn(
+      'uris-start-unset.xqy',
+      (xs:QName('FOREST'), xdmp:forest-name(xs:unsignedLong($key))))))
+(: Give larger forests a head start :)
+let $keys := (
   for $key in map:keys($FORESTS-MAP)
-  return xdmp:spawn(
-    'uris-start-unset.xqy',
-    (xs:QName('FOREST'), xdmp:forest-name(xs:unsignedLong($key)))))
-for $key in map:keys($FORESTS-MAP)
-let $x := map:get($FORESTS-MAP, $key)
+  let $estimate := map:get($FORESTS-MAP, $key)
+  order by $estimate descending
+  return $key)
+for $key in $keys
 let $fid := xs:unsignedLong($key)
-let $estimate := xdmp:estimate(
-  cts:search(doc(), cts:and-query(()), (), (), $fid))
-(: give larger forests a head start :)
-order by $estimate descending
 return (
+  (: Allow ramp-up time, 1-ms per 2000 docs but at least 2-sec.
+   : Do this before spawning, so the uris-start-unset has a chance.
+   : NB - with default time limit, this will time out around 1B docs.
+   : If this happens, raise the time limit.
+   :)
+  xdmp:sleep(max((2000, map:get($FORESTS-MAP, $key) idiv 2000))),
   xdmp:forest-name($fid),
   xdmp:spawn(
     $MODULE,
     (xs:QName('FOREST'), $fid,
-      xs:QName('INDEX'), $x,
       xs:QName('LIMIT'), $LIMIT,
       xs:QName('RESPAWN'), $RESPAWN),
       <options xmlns="xdmp:eval"><time-limit>3600</time-limit></options>),
-  (: Allow ramp-up time, 1-ms per 2000 docs.
-   : NB - with default time limit, this will time out around 1B docs.
-   : If this happens, raise the time limit.
-   :)
-  xdmp:sleep($estimate idiv 2000))
+  xdmp:log(text { '[forests.xqy] spawned forest', xdmp:forest-name($fid) }))
 
 (: forests.xqy :)

@@ -1,19 +1,30 @@
 Task Server Scripts for Forest Rebalancing
 ===
 
-Sometimes a MarkLogic Server database will have several forests.
+Often a MarkLogic Server database will have several forests.
 If the forests are present from the time when the database was created,
 they will each have approximately the same number of documents.
 But if the administrator adds more forests later on,
 the newer forests will tend to have fewer documents.
 In cases like this, we can rebalance the forests.
 
-But before using this tool, consider that
+Or perhaps you want to replace the existing forests entirely.
+That would make sense if the replacements are on faster or larger storage,
+for example. Set the old forests to `updates-allowed=delete-only`
+and this tool can handle that scenario too.
+
+Before using this tool, consider that
 rebalancing is generally slower than clearing the database and reloading.
 That is because many documents must be updated,
 and updates are more expensive than inserts.
 So rebalancing the forests may not be the best way to solve the problem.
 If you have the luxury of clearing the database and reloading everything, do it.
+
+Due to limitations in MarkLogic, this tool does not rebalance
+directory fragments or standalone properties.
+If you see extra fragments left behind after balancing away from
+delete-only forests, this may be the explanation.
+If you need to move fragments of this kind, you may be better off reloading.
 
 Finally, note that following this procedure may result in forests
 containing many deleted fragments. To recover disk space,
@@ -46,6 +57,11 @@ feel free to open an issue (or create a patch and a pull request).
 
 Usage
 ---
+
+If you want to remove all documents from one or more forests,
+set `updates-allowed` for those forests to `delete-only`.
+Make sure you have at least some forests with `updates-allowed=all`,
+so the documents have somewhere to land.
 
 To start the rebalancer manually, use this XQuery expression:
 
@@ -99,30 +115,8 @@ This requirement helps avoid deadlocks.
 
 Beyond that minimum, you can use the Task Server thread pool size
 to throttle the impact of the rebalance tasks on other users of the system.
-
-Evacuating a Forest
----
-
-Occasionally it can be useful to completely empty a forest
-of any existing documents. The `forest-uris-evacuate.xqy` module
-is designed to do just that. Do *not* invoke it via `forests.xqy`.
-Instead, invoke it directly for the forest that you want to empty.
-After the forest has emptied, detach it from your database.
-
-    xdmp:spawn(
-      "forest-uris-evacuate.xqy",
-      (xs:QName('FOREST'), xdmp:forest('forest-to-evacuate'),
-       xs:QName('INDEX'), -1,
-       xs:QName('LIMIT'), 0,
-       xs:QName('RESPAWN'), true()),
-      <options xmlns="xdmp:eval">
-        <database>{ xdmp:database() }</database>
-        <root>/path/to/mblakele-task-rebalancer/</root>
-        <time-limit>3600</time-limit>
-      </options>)
-
-Note that if there is more than one such forest, you will have to
-modify the script to exclude all those forests.
+When using the scheduled task, you can also use the task interval
+and the `LIMIT` option as throttles.
 
 Troubleshooting
 ---

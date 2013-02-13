@@ -31,18 +31,24 @@ import module namespace trb="com.blakeley.task-rebalancer"
 (: the forest to rebalance :)
 declare variable $FOREST as xs:unsignedLong external ;
 
-declare variable $INDEX as xs:integer external ;
+declare variable $TARGETS as xs:unsignedLong+ := trb:database-forests() ;
+
+declare variable $INDEX as xs:integer := (index-of($TARGETS, $FOREST), -1)[1] ;
 
 declare variable $LIMIT as xs:integer external ;
 
 declare variable $RESPAWN as xs:boolean external ;
 
+xdmp:log(
+  text {
+    '[forest-uris.xqy]', xdmp:forest-name($FOREST), $INDEX, $LIMIT, $RESPAWN },
+  'debug'),
 trb:spawn(
   'forest-uris.xqy',
   $FOREST,
   $INDEX,
   xdmp:forest-status($FOREST),
-  xdmp:database-forests(xdmp:database()),
+  $TARGETS,
   $RESPAWN,
   $LIMIT)
 

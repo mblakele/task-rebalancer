@@ -34,10 +34,10 @@ declare variable $PROP as node()? := xdmp:document-properties($URI) ;
  : This document acts as a kill signal.
  : Do not throw an error, since that could flood the server logs.
  :)
-if ($trb:FATAL) then xdmp:log('rebalance.xqy: FATAL is set: stopping', 'fine')
+if ($trb:FATAL) then xdmp:log('[rebalance.xqy] FATAL is set: stopping', 'fine')
 else if ($ASSIGNMENT = xdmp:document-forest($URI)) then xdmp:log(
-  text { 'rebalance.xqy:', $URI, 'is already in', $ASSIGNMENT },
-  'debug')
+  text { '[rebalance.xqy]', $URI, 'is already in', $ASSIGNMENT },
+  'fine')
 (: Update the existing document, by overwriting it.
  : explicitly place the document in the correct forest.
  :)
