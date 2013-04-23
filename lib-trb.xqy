@@ -356,6 +356,7 @@ as map:map
    :)
   let $m := map:map()
   let $do := (
+    (: NB - xdmp:host-forests requires v5.0 or later. :)
     let $local-forests := xdmp:host-forests(xdmp:host())
     for $fid in xdmp:database-forests(xdmp:database())
     where $local-forests = $fid

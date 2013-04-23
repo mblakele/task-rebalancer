@@ -51,8 +51,8 @@ The database that you wish to rebalance must have the URI lexicon enabled.
 If that lexicon is not enabled, you must enable it and reindex.
 In that case you may be better off reloading all your content (see above).
 
-This code uses `xdmp:set-server-field`, which requires MarkLogic 4.2 or later.
-If you are interested in support for 4.1 or earlier releases,
+This code uses `xdmp:host-forests`, which requires MarkLogic 5.0 or later.
+If you are interested in support for 4.2 or earlier releases,
 feel free to open an issue (or create a patch and a pull request).
 
 Usage
