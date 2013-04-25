@@ -72,8 +72,13 @@ To start the rebalancer manually, use this XQuery expression:
        xs:QName('RESPAWN'), true()),
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database('DATABASE-NAME') }</database>
+        <modules>0</modules>
         <root>/PATH/TO/XQY/FILES/</root>
       </options>)
+
+This assumes the task-rebalancer code is on the local fileystem.
+If you have copied it into a modules database,
+replace the `modules` option accordingly.
 
 Be careful not to invoke `forests.xqy` multiple times,
 especially with `RESPAWN` set. Doing so should not damage your system,
@@ -148,6 +153,7 @@ use the following expression to halt it:
       (),
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database() }</database>
+        <modules>0</modules>
         <root>/PATH/TO/XQY/FILES/</root>
         <priority>higher</priority>
       </options>)
@@ -160,6 +166,7 @@ use this expression to renable the rebalancer.
       (),
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database() }</database>
+        <modules>0</modules>
         <root>/PATH/TO/XQY/FILES/</root>
         <priority>higher</priority>
       </options>)
@@ -167,6 +174,11 @@ use this expression to renable the rebalancer.
 You can also try to stop it by moving the `task-rebalancer` directory aside.
 Either of these techniques may take some time: if you are in a hurry,
 it may be faster to restart MarkLogic on the affected host.
+
+As mentioned above, these code samples assume that
+the task-rebalancer code is on the local fileystem.
+If you have copied it into a modules database,
+replace the `modules` option accordingly.
 
 License
 ---

@@ -157,7 +157,7 @@ declare function trb:maybe-spawn2(
     (: Increment the task count. :)
     xdmp:set($TASKS-COUNT, 1 + $TASKS-COUNT),
     xdmp:set($URI-LAST, $uri),
-    (: give any competing threads a chance :)
+    (: Give any competing threads a chance. :)
     xdmp:sleep(1) )
 };
 
