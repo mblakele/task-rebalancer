@@ -38,6 +38,8 @@ declare namespace fs="http://marklogic.com/xdmp/status/forest" ;
 declare variable $FATAL := xdmp:get-server-field(
   'com.blakeley.task-rebalancer.FATAL') ;
 
+declare variable $HOST := xdmp:host() ;
+
 declare variable $TASKS-COUNT := 0 ;
 
 declare variable $URI-LAST := () ;
@@ -242,17 +244,17 @@ declare function trb:spawn-preflight(
   (: Make sure we have not suffered a forest failover event.
    : NB - this does not protect against failover events after tasks are queued.
    :)
-  if ($forest-status/fs:host-id eq xdmp:host()) then () else error(
+  if ($forest-status/fs:host-id eq $HOST) then () else error(
     (), 'TRB-NOTLOCAL',
     text {
       $forest-status/fs:forest-name, 'is not local to',
-      xdmp:host-name(xdmp:host())})
+      xdmp:host-name($HOST)})
   ,
   if ($forest-status/fs:current-master-forest eq $forest) then () else error(
     (), 'TRB-NOTLOCAL',
     text {
       $forest-status/fs:forest-name, 'master is not local to',
-      xdmp:host-name(xdmp:host())})
+      xdmp:host-name($HOST)})
 };
 
 declare function trb:spawn-postflight(
@@ -347,6 +349,20 @@ as xs:unsignedLong*
   return xdmp:forest-status($f)[ fs:updates-allowed eq 'all' ]/fs:forest-id
 };
 
+declare function trb:forests-map(
+  $m as map:map,
+  $forests as xs:unsignedLong*)
+as map:map
+{
+  xdmp:log(text { 'trb:forest-map', xdmp:describe($forests) }, 'debug'),
+  if (empty($forests)) then $m else (
+    map:put(
+      $m, string($forests[1]),
+      xdmp:estimate(
+        cts:search(collection(), cts:and-query(()), (), (), $forests[1]))),
+    trb:forests-map($m, subsequence($forests, 2)))
+};
+
 declare function trb:forests-map()
 as map:map
 {
@@ -354,27 +370,11 @@ as map:map
    : Run on other hosts in the cluster to look at their forests.
    : The FLWOR is here to preserve stable order.
    :)
-  let $m := map:map()
-  let $do := (
-    (: NB - xdmp:host-forests requires v5.0 or later. :)
-    let $local-forests := xdmp:host-forests(xdmp:host())
-    for $fid in xdmp:database-forests(xdmp:database())
-    where $local-forests = $fid
-    return map:put(
-      $m, string($fid),
-      (: Throws XDMP-FORESTNID on any forest that is a failed-over master.
-       : TODO find a better way to handle this?
-       :)
-      try {
-        xdmp:estimate(
-          cts:search(collection(), cts:and-query(()), (), (), $fid)) }
-      catch ($ex) {
-        if (not($ex/error:code = '')) then xdmp:rethrow()
-        else error((), 'TRB-FAILOVER', text {
-            'At least one forest is failed over.',
-            'Resolve the error on forest', xdmp:forest-name($fid),
-            'and try again.' }) }))
-  return $m
+  trb:forests-map(
+    map:map(),
+    xdmp:forest-status(
+      xdmp:database-forests(xdmp:database(), true()))[
+      fs:state eq 'open'][fs:host-id eq $HOST]/fs:forest-id)
 };
 
 (: lib-trb.xqy :)

@@ -56,6 +56,14 @@ let $assert := (
       'to avoid deadlocks,',
       'configure the task server with at least',
       1 + count(map:keys($FORESTS-MAP)), 'threads' }))
+let $assert := (
+  if (map:count($FORESTS-MAP) gt 0) then ()
+  else error((), 'TRB-NOFORESTS', 'No forests to rebalance'))
+let $assert := (
+  if (map:count($FORESTS-MAP) gt 1) then ()
+  else error(
+    (), 'TRB-TOOFEWFORESTS',
+    ('Not enough forests to rebalance', map:count($FORESTS-MAP))))
 (: Clear any state if respawn is set.
  : If respawn is not set, this may be a scheduled task.
  :)
