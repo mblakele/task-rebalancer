@@ -53,7 +53,7 @@ declare function trb:maybe-fatal()
 as empty-sequence()
 {
   if (not($trb:FATAL)) then ()
-  else error((), 'FATAL is set: stopping')
+  else error((), 'TRB-FATAL', 'FATAL is set: stopping')
 };
 
 declare private function trb:uris-start-name(
@@ -362,8 +362,18 @@ as map:map
     where $local-forests = $fid
     return map:put(
       $m, string($fid),
-      xdmp:estimate(
-        cts:search(collection(), cts:and-query(()), (), (), $fid))))
+      (: Throws XDMP-FORESTNID on any forest that is a failed-over master.
+       : TODO find a better way to handle this?
+       :)
+      try {
+        xdmp:estimate(
+          cts:search(collection(), cts:and-query(()), (), (), $fid)) }
+      catch ($ex) {
+        if (not($ex/error:code = '')) then xdmp:rethrow()
+        else error((), 'TRB-FAILOVER', text {
+            'At least one forest is failed over.',
+            'Resolve the error on forest', xdmp:forest-name($fid),
+            'and try again.' }) }))
   return $m
 };
 
