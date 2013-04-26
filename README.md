@@ -8,10 +8,12 @@ But if the administrator adds more forests later on,
 the newer forests will tend to have fewer documents.
 In cases like this, we can rebalance the forests.
 
-Or perhaps you want to replace the existing forests entirely.
+Or perhaps you want to replace the existing forests entirely,
+without losing any documents?
 That would make sense if the replacements are on faster or larger storage,
 for example. Set the old forests to `updates-allowed=delete-only`
-and this tool can handle that scenario too.
+and this tool can evacuate those forests. Once they are empty,
+detach them from the database and then delete them.
 
 Before using this tool, consider that
 rebalancing is generally slower than clearing the database and reloading.
