@@ -22,13 +22,14 @@ xquery version "1.0-ml";
 import module namespace trb="com.blakeley.task-rebalancer"
   at "/lib-trb.xqy" ;
 
-(: This version of forests-uris.xqy is designed to evacuate a forest.
- : After all uri-tasks have been run, the target forest should be empty.
+(: This version of forests-uris.xqy is designed to evacuate a forest,
+ : for test purposes only. After all uri-tasks have been run,
+ : the target forest should be empty.
  :
  : NOTE
  : This script is for test purposes only.
  : In real life, set the forest updates-allowed=delete-only
- : and invoke forests.xqy instead.
+ : and invoke forests.xqy instead. See README.md for details.
 
 xdmp:spawn(
   "test/forest-uris-evacuate.xqy",
