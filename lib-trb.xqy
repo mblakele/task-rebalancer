@@ -38,6 +38,13 @@ declare namespace fs="http://marklogic.com/xdmp/status/forest" ;
 declare variable $FATAL := xdmp:get-server-field(
   'com.blakeley.task-rebalancer.FATAL') ;
 
+(: These error codes indicate a low-level database problem,
+ : which should be treated as fatal.
+ : Used by rebalance.xqy initially.
+ :)
+declare variable $FATAL-CODES := (
+  'XDMP-FORESTNOT') ;
+
 declare variable $HOST := xdmp:host() ;
 
 declare variable $TASKS-COUNT := 0 ;
@@ -47,7 +54,11 @@ declare variable $URI-LAST := () ;
 declare function trb:fatal-set($value as xs:boolean)
  as empty-sequence()
 {
-  xdmp:set-server-field('com.blakeley.task-rebalancer.FATAL', $value)[0],
+  xdmp:log(
+    text { '[trb:fatal-set]',
+      (: Take advantage of set-server-field return value. :)
+      xdmp:set-server-field('com.blakeley.task-rebalancer.FATAL', $value) },
+    'info'),
   xdmp:set($trb:FATAL, $value)
 };
 
@@ -56,6 +67,20 @@ as empty-sequence()
 {
   if (not($trb:FATAL)) then ()
   else error((), 'TRB-FATAL', 'FATAL is set: stopping')
+};
+
+declare function trb:assert-task-server()
+as empty-sequence()
+{
+  (: Assert that this query is running on the task server. :)
+  if (xdmp:server-name(xdmp:server()) eq 'TaskServer') then ()
+  else error(
+    (), 'TRB-SERVERNOT',
+    text {
+      xdmp:server(),
+      xdmp:server-name(xdmp:server()),
+      'This query must run on the Task Server.',
+      'Use xdmp:spawn instead of xdmp:invoke.' })
 };
 
 declare private function trb:uris-start-name(
@@ -354,7 +379,7 @@ declare function trb:forests-map(
   $forests as xs:unsignedLong*)
 as map:map
 {
-  xdmp:log(text { 'trb:forest-map', xdmp:describe($forests) }, 'debug'),
+  xdmp:log(text { '[trb:forest-map]', xdmp:describe($forests) }, 'debug'),
   if (empty($forests)) then $m else (
     map:put(
       $m, string($forests[1]),

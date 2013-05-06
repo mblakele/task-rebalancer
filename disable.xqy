@@ -23,6 +23,7 @@ xquery version "1.0-ml";
 import module namespace trb="com.blakeley.task-rebalancer"
   at "lib-trb.xqy" ;
 
+trb:assert-task-server(),
 trb:fatal-set(true())
 
 (: disable :)
