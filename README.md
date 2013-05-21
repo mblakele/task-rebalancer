@@ -31,6 +31,7 @@ If you need to move fragments of this kind, you may be better off reloading.
 Finally, note that following this procedure may result in forests
 containing many deleted fragments. To recover disk space,
 you may wish to force some forests to merge.
+This code does not monitor free disk space: that is your job.
 
 Setup
 ---
@@ -164,7 +165,7 @@ Watch the Task Server status page. Once all the tasks have finished,
 use this expression to renable the rebalancer.
 
     xdmp:spawn(
-      enable.xqy',
+      'enable.xqy',
       (),
       <options xmlns="xdmp:eval">
         <database>{ xdmp:database() }</database>
