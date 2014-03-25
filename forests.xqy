@@ -59,11 +59,13 @@ let $assert := (
 let $assert := (
   if (map:count($FORESTS-MAP) gt 0) then ()
   else error((), 'TRB-NOFORESTS', 'No forests to rebalance'))
+(: Check the forest count for the whole database, not just this host. :)
 let $assert := (
-  if (map:count($FORESTS-MAP) gt 1) then ()
-  else error(
-    (), 'TRB-TOOFEWFORESTS',
-    ('Not enough forests to rebalance', map:count($FORESTS-MAP))))
+ if (xdmp:database-forests(xdmp:database())[2]) then ()
+ else error(
+   (), 'TRB-TOOFEWFORESTS',
+   ('Not enough forests to rebalance',
+    count(xdmp:database-forests(xdmp:database())))))
 (: Clear any state if respawn is set.
  : If respawn is not set, this may be a scheduled task.
  :)
