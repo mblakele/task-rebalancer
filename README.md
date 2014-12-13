@@ -1,6 +1,11 @@
 Task Server Scripts for Forest Rebalancing
 ===
 
+**NOTE**: MarkLogic 7 includes a built-in rebalancer,
+which makes this code largely obsolete.
+The project will stick around as sample code,
+but I strongly recommend upgrading to MarkLogic 7 or later.
+
 Often a MarkLogic Server database will have several forests.
 If the forests are present from the time when the database was created,
 they will each have approximately the same number of documents.
